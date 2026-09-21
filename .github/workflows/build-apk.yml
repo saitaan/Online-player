@@ -20,16 +20,36 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Auto-Detect and Prepare Project Structure
+        run: |
+          echo "=== 1. Checking Current Repository Content ==="
+          ls -la
+
+          # Agar zip file uploaded hai toh use extract karein
+          for zip in *.zip; do
+            if [ -f "$zip" ]; then
+              echo "Found zip file: $zip. Extracting..."
+              unzip -o "$zip"
+            fi
+          done
+
+          # Agar settings.gradle.kts root par nahi hai, toh use dhundh kar root par layein
+          if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
+            SETTINGS_PATH=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
+            if [ -n "$SETTINGS_PATH" ]; then
+              SRC_DIR=$(dirname "$SETTINGS_PATH")
+              echo "Found Gradle project in: $SRC_DIR. Moving files to root..."
+              cp -r "$SRC_DIR"/* . 2>/dev/null || true
+              cp -r "$SRC_DIR"/.* . 2>/dev/null || true
+            fi
+          fi
+
+          echo "=== 2. Directory Structure After Move ==="
+          ls -la
+          chmod +x gradlew || true
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-
-      - name: Move files to root if inside subfolder
-        run: |
-          if [ -d "multimedia-player" ] && [ ! -f "settings.gradle.kts" ]; then
-            echo "Subfolder detected, moving files to root"
-            mv multimedia-player/* multimedia-player/.* . 2>/dev/null || true
-          fi
-          chmod +x gradlew || true
 
       - name: Build Debug APK
         run: |
