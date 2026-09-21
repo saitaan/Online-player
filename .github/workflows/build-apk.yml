@@ -17,47 +17,42 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Auto-Detect and Prepare Project Structure
         run: |
-          echo "=== 1. Checking Current Repository Content ==="
+          echo "=== 1. Checking Repository Content ==="
           ls -la
 
-          # Agar zip file uploaded hai toh use extract karein
+          # Extract any zip if present
           for zip in *.zip; do
             if [ -f "$zip" ]; then
-              echo "Found zip file: $zip. Extracting..."
+              echo "Extracting $zip..."
               unzip -o "$zip"
             fi
           done
 
-          # Agar settings.gradle.kts root par nahi hai, toh use dhundh kar root par layein
+          # Relocate to root if files are inside a subfolder
           if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
             SETTINGS_PATH=$(find . -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1)
             if [ -n "$SETTINGS_PATH" ]; then
               SRC_DIR=$(dirname "$SETTINGS_PATH")
-              echo "Found Gradle project in: $SRC_DIR. Moving files to root..."
+              echo "Relocating from $SRC_DIR to root..."
               cp -r "$SRC_DIR"/* . 2>/dev/null || true
               cp -r "$SRC_DIR"/.* . 2>/dev/null || true
             fi
           fi
 
-          echo "=== 2. Directory Structure After Move ==="
-          ls -la
-          chmod +x gradlew || true
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+          echo "=== 2. Setting Up Gradle 8.4 Wrapper ==="
+          curl -sL https://services.gradle.org/distributions/gradle-8.4-bin.zip -o gradle-8.4-bin.zip
+          unzip -q -o gradle-8.4-bin.zip
+          ./gradle-8.4/bin/gradle wrapper --gradle-version 8.4 --distribution-type bin
+          chmod +x gradlew
 
       - name: Build Debug APK
         run: |
-          if [ -f gradlew ]; then
-            ./gradlew assembleDebug --no-daemon
-          else
-            gradle assembleDebug --no-daemon
-          fi
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
