@@ -1,4 +1,4 @@
-name: Build Multimedia Android APK
+name: Build Android APK
 
 on:
   push:
@@ -23,8 +23,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || true
+      - name: Move files to root if inside subfolder
+        run: |
+          if [ -d "multimedia-player" ] && [ ! -f "settings.gradle.kts" ]; then
+            echo "Subfolder detected, moving files to root"
+            mv multimedia-player/* multimedia-player/.* . 2>/dev/null || true
+          fi
+          chmod +x gradlew || true
 
       - name: Build Debug APK
         run: |
@@ -37,7 +42,7 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Multimedia-debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: CleanPlayer-Debug-APK
+          path: "**/build/outputs/apk/debug/*.apk"
           retention-days: 14
           
